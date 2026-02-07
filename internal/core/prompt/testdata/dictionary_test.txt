@@ -1,0 +1,7 @@
+# テスト辞書
+クロードコード	Claude Code
+リアクト	React
+ネクスト	Next.js
+haiku
+gemini
+typescript
