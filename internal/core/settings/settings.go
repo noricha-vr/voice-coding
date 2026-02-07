@@ -40,7 +40,11 @@ func Default() *Settings {
 var settingsPathFunc = defaultSettingsPath
 
 func defaultSettingsPath() string {
-	return filepath.Join(os.Getenv("HOME"), ".voicecode", "settings.json")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = os.Getenv("HOME")
+	}
+	return filepath.Join(home, ".voicecode", "settings.json")
 }
 
 // Load reads settings from ~/.voicecode/settings.json.

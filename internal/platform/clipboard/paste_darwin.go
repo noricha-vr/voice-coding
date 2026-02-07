@@ -28,28 +28,16 @@ import (
 	xclip "golang.design/x/clipboard"
 )
 
-type darwinClipboard struct{}
-
 // NewClipboard creates a new macOS clipboard manager.
 func NewClipboard() (Clipboard, error) {
 	if err := xclip.Init(); err != nil {
 		return nil, err
 	}
-	return &darwinClipboard{}, nil
+	return &clipboardImpl{}, nil
 }
 
-func (c *darwinClipboard) GetText() (string, error) {
-	data := xclip.Read(xclip.FmtText)
-	return string(data), nil
-}
-
-func (c *darwinClipboard) SetText(text string) error {
-	xclip.Write(xclip.FmtText, []byte(text))
-	return nil
-}
-
-func (c *darwinClipboard) Paste() error {
-	time.Sleep(100 * time.Millisecond) // wait for clipboard to be ready
+func (c *clipboardImpl) Paste() error {
+	time.Sleep(100 * time.Millisecond)
 	C.simulatePaste()
 	return nil
 }
