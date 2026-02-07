@@ -163,6 +163,7 @@ func (a *App) stopAndProcess() {
 func (a *App) processRecording(samples []int16) {
 	a.processMu.Lock()
 	defer a.processMu.Unlock()
+	a.tray.SetState(tray.Processing)
 	defer a.tray.SetState(tray.Idle)
 
 	// Save WAV to temp file
