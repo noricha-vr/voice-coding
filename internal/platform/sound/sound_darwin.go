@@ -25,5 +25,9 @@ func (p *darwinPlayer) Play(s SoundType) error {
 		return fmt.Errorf("unknown sound type: %d", s)
 	}
 	cmd := exec.Command("afplay", path)
-	return cmd.Start() // fire and forget
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go cmd.Wait() // reap child process to avoid zombie
+	return nil
 }

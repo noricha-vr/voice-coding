@@ -14,14 +14,14 @@ import (
 )
 
 const (
-	ThinkingLevelEnvVar      = "VOICECODE_THINKING_LEVEL"
-	EnablePromptCacheEnvVar  = "VOICECODE_ENABLE_PROMPT_CACHE"
-	PromptCacheTTLEnvVar     = "VOICECODE_PROMPT_CACHE_TTL"
-	DefaultThinkingLevel     = "minimal"
-	DefaultPromptCacheTTL    = 3600 * time.Second
-	Timeout                  = 10 * time.Second
-	MaxTransientRetries      = 1
-	RetryBackoffSeconds      = 0.3
+	ThinkingLevelEnvVar     = "VOICECODE_THINKING_LEVEL"
+	EnablePromptCacheEnvVar = "VOICECODE_ENABLE_PROMPT_CACHE"
+	PromptCacheTTLEnvVar    = "VOICECODE_PROMPT_CACHE_TTL"
+	DefaultThinkingLevel    = "minimal"
+	DefaultPromptCacheTTL   = 3600 * time.Second
+	Timeout                 = 10 * time.Second
+	MaxTransientRetries     = 1
+	RetryBackoffSeconds     = 0.3
 )
 
 var xmlTagPattern = regexp.MustCompile(`<[^>]+>`)
@@ -35,14 +35,14 @@ var thinkingLevelMap = map[string]genai.ThinkingLevel{
 
 // Transcriber handles audio transcription via Gemini API.
 type Transcriber struct {
-	client             *genai.Client
-	systemPrompt       string
-	modelName          string
-	thinkingLevel      genai.ThinkingLevel
-	thinkingMode       string // "level" or "budget0"
-	enablePromptCache  bool
-	promptCacheTTL     time.Duration
-	cacheNameByModel   map[string]string
+	client            *genai.Client
+	systemPrompt      string
+	modelName         string
+	thinkingLevel     genai.ThinkingLevel
+	thinkingMode      string // "level" or "budget0"
+	enablePromptCache bool
+	promptCacheTTL    time.Duration
+	cacheNameByModel  map[string]string
 }
 
 // New creates and initializes a Transcriber.
@@ -269,12 +269,8 @@ func resolvePromptCacheTTL() time.Duration {
 	}
 	d, err := time.ParseDuration(raw)
 	if err != nil {
-		// Try parsing as "3600s" format
-		d, err = time.ParseDuration(raw)
-		if err != nil {
-			log.Printf("[Gemini] 無効な prompt cache TTL のためデフォルトを使用します: %s", raw)
-			return DefaultPromptCacheTTL
-		}
+		log.Printf("[Gemini] 無効な prompt cache TTL のためデフォルトを使用します: %s", raw)
+		return DefaultPromptCacheTTL
 	}
 	return d
 }

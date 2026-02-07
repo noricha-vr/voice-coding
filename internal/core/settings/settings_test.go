@@ -111,6 +111,43 @@ func TestValidateInRange(t *testing.T) {
 	}
 }
 
+func TestLoadClampsOutOfRangeValues(t *testing.T) {
+	path := withTempSettingsPath(t)
+
+	tests := []struct {
+		name     string
+		duration int
+		want     int
+	}{
+		{"below minimum", 1, MinRecordingDuration},
+		{"zero", 0, MinRecordingDuration},
+		{"negative", -5, MinRecordingDuration},
+		{"above maximum", 999, MaxRecordingDuration},
+		{"valid stays unchanged", 60, 60},
+		{"min boundary", MinRecordingDuration, MinRecordingDuration},
+		{"max boundary", MaxRecordingDuration, MaxRecordingDuration},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Default()
+			s.MaxRecordingDuration = tt.duration
+			data, _ := json.Marshal(s)
+			dir := filepath.Dir(path)
+			os.MkdirAll(dir, 0o755)
+			os.WriteFile(path, data, 0o644)
+
+			loaded, err := Load()
+			if err != nil {
+				t.Fatalf("Load() error: %v", err)
+			}
+			if loaded.MaxRecordingDuration != tt.want {
+				t.Errorf("MaxRecordingDuration = %d, want %d", loaded.MaxRecordingDuration, tt.want)
+			}
+		})
+	}
+}
+
 func TestValidateOutOfRange(t *testing.T) {
 	tests := []struct {
 		name     string

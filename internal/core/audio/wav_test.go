@@ -84,6 +84,33 @@ func TestGetDurationInvalidFile(t *testing.T) {
 	}
 }
 
+func TestWriteWAVAndGetDurationHighSampleRate(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "high_sr.wav")
+
+	// 96000 Hz exceeds uint16 max (65535) so this would fail with uint16 sampleRate
+	sampleRate := 96000
+	durationSec := 1.0
+	numSamples := int(durationSec * float64(sampleRate))
+	samples := make([]int16, numSamples)
+	for i := range samples {
+		samples[i] = int16(500 * math.Sin(2*math.Pi*440*float64(i)/float64(sampleRate)))
+	}
+
+	if err := WriteWAV(path, samples, sampleRate); err != nil {
+		t.Fatalf("WriteWAV() error: %v", err)
+	}
+
+	got, err := GetDuration(path)
+	if err != nil {
+		t.Fatalf("GetDuration() error: %v", err)
+	}
+
+	if math.Abs(got-durationSec) > 0.1 {
+		t.Errorf("GetDuration() = %.1f, want %.1f", got, durationSec)
+	}
+}
+
 func TestWriteWAVEmptySamples(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "empty.wav")

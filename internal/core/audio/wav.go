@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -47,7 +48,8 @@ func GetDuration(path string) (float64, error) {
 	}
 
 	// Parse chunks
-	var channels, sampleRate, bps uint16
+	var channels, bps uint16
+	var sampleRate uint32
 	var dataSize uint32
 	foundFmt := false
 	foundData := false
@@ -74,11 +76,9 @@ func GetDuration(path string) (float64, error) {
 			if err := binary.Read(f, binary.LittleEndian, &channels); err != nil {
 				return 0, fmt.Errorf("reading channels: %w", err)
 			}
-			var sr uint32
-			if err := binary.Read(f, binary.LittleEndian, &sr); err != nil {
+			if err := binary.Read(f, binary.LittleEndian, &sampleRate); err != nil {
 				return 0, fmt.Errorf("reading sample rate: %w", err)
 			}
-			sampleRate = uint16(sr)
 			// Skip byte rate (4 bytes) and block align (2 bytes)
 			var byteRate uint32
 			var blockAlign uint16
@@ -129,42 +129,42 @@ func GetDuration(path string) (float64, error) {
 }
 
 // WriteWAV writes PCM 16-bit mono audio data to a WAV file.
+// All header and sample data are assembled in memory and written atomically.
 func WriteWAV(path string, samples []int16, sampleRate int) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("creating WAV file: %w", err)
-	}
-	defer f.Close()
-
 	numChannels := uint16(1)
 	bps := uint16(bitsPerSample)
 	dataSize := uint32(len(samples)) * uint32(bps/8) * uint32(numChannels)
-	// RIFF file size = 4 (WAVE) + 24 (fmt chunk) + 8 (data header) + dataSize
 	riffSize := uint32(4 + fmtChunkSize + 8 + dataSize)
 
+	var buf bytes.Buffer
+	buf.Grow(int(riffSize) + 8) // RIFF header (8) + rest
+
 	// RIFF header
-	f.Write([]byte("RIFF"))
-	binary.Write(f, binary.LittleEndian, riffSize)
-	f.Write([]byte("WAVE"))
+	buf.WriteString("RIFF")
+	binary.Write(&buf, binary.LittleEndian, riffSize)
+	buf.WriteString("WAVE")
 
 	// fmt chunk
-	f.Write([]byte("fmt "))
-	binary.Write(f, binary.LittleEndian, uint32(16)) // chunk size
-	binary.Write(f, binary.LittleEndian, uint16(pcmFormat))
-	binary.Write(f, binary.LittleEndian, numChannels)
-	binary.Write(f, binary.LittleEndian, uint32(sampleRate))
+	buf.WriteString("fmt ")
+	binary.Write(&buf, binary.LittleEndian, uint32(16))
+	binary.Write(&buf, binary.LittleEndian, uint16(pcmFormat))
+	binary.Write(&buf, binary.LittleEndian, numChannels)
+	binary.Write(&buf, binary.LittleEndian, uint32(sampleRate))
 	byteRate := uint32(sampleRate) * uint32(numChannels) * uint32(bps/8)
-	binary.Write(f, binary.LittleEndian, byteRate)
+	binary.Write(&buf, binary.LittleEndian, byteRate)
 	blockAlign := numChannels * (bps / 8)
-	binary.Write(f, binary.LittleEndian, blockAlign)
-	binary.Write(f, binary.LittleEndian, bps)
+	binary.Write(&buf, binary.LittleEndian, blockAlign)
+	binary.Write(&buf, binary.LittleEndian, bps)
 
 	// data chunk
-	f.Write([]byte("data"))
-	binary.Write(f, binary.LittleEndian, dataSize)
-	if err := binary.Write(f, binary.LittleEndian, samples); err != nil {
-		return fmt.Errorf("writing samples: %w", err)
+	buf.WriteString("data")
+	binary.Write(&buf, binary.LittleEndian, dataSize)
+	if err := binary.Write(&buf, binary.LittleEndian, samples); err != nil {
+		return fmt.Errorf("encoding samples: %w", err)
 	}
 
+	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
+		return fmt.Errorf("writing WAV file: %w", err)
+	}
 	return nil
 }

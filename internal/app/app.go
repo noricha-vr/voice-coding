@@ -34,6 +34,8 @@ type App struct {
 	mu          sync.Mutex
 	isRecording bool
 	cancelTimer context.CancelFunc
+
+	processMu sync.Mutex // guards processRecording from concurrent execution
 }
 
 // New creates a new App with all dependencies.
@@ -45,7 +47,7 @@ func New(
 	snd sound.Player,
 	ov overlay.Overlay,
 	hk hotkey.Manager,
-	tr2 tray.Manager,
+	tm tray.Manager,
 ) *App {
 	return &App{
 		settings:    cfg,
@@ -55,7 +57,7 @@ func New(
 		sound:       snd,
 		overlay:     ov,
 		hotkey:      hk,
-		tray:        tr2,
+		tray:        tm,
 	}
 }
 
@@ -76,7 +78,10 @@ func (a *App) Run() {
 		// onQuit
 		log.Println("[App] Shutting down")
 		a.hotkey.Unregister()
-		if a.isRecording {
+		a.mu.Lock()
+		recording := a.isRecording
+		a.mu.Unlock()
+		if recording {
 			a.recorder.Stop()
 		}
 	})
@@ -156,6 +161,8 @@ func (a *App) stopAndProcess() {
 }
 
 func (a *App) processRecording(samples []int16) {
+	a.processMu.Lock()
+	defer a.processMu.Unlock()
 	defer a.tray.SetState(tray.Idle)
 
 	// Save WAV to temp file

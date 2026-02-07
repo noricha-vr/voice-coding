@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -63,6 +64,7 @@ func Load() (*Settings, error) {
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("parsing settings: %w", err)
 	}
+	s.clampDefaults()
 	return &s, nil
 }
 
@@ -83,6 +85,19 @@ func (s *Settings) Save() error {
 		return fmt.Errorf("writing settings: %w", err)
 	}
 	return nil
+}
+
+// clampDefaults adjusts out-of-range values to the nearest valid boundary
+// and logs warnings for each clamped field.
+func (s *Settings) clampDefaults() {
+	if s.MaxRecordingDuration < MinRecordingDuration {
+		log.Printf("[Settings] max_recording_duration %d is below minimum %d, clamping", s.MaxRecordingDuration, MinRecordingDuration)
+		s.MaxRecordingDuration = MinRecordingDuration
+	}
+	if s.MaxRecordingDuration > MaxRecordingDuration {
+		log.Printf("[Settings] max_recording_duration %d is above maximum %d, clamping", s.MaxRecordingDuration, MaxRecordingDuration)
+		s.MaxRecordingDuration = MaxRecordingDuration
+	}
 }
 
 // Validate checks that settings values are within acceptable ranges.

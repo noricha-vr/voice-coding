@@ -28,7 +28,7 @@ type mockClipboard struct {
 
 func (m *mockClipboard) GetText() (string, error) { return m.text, nil }
 func (m *mockClipboard) SetText(t string) error   { m.text = t; return nil }
-func (m *mockClipboard) Paste() error              { return nil }
+func (m *mockClipboard) Paste() error             { return nil }
 
 type mockSound struct {
 	lastPlayed sound.SoundType

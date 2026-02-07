@@ -5,8 +5,19 @@ package transcriber
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 )
+
+// sampleWAVPath returns the path to testdata/sample.wav relative to this test file.
+func sampleWAVPath(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join("..", "..", "..", "testdata", "sample.wav")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Skipf("testdata/sample.wav not found: %s", path)
+	}
+	return path
+}
 
 func TestTranscribeIntegration(t *testing.T) {
 	apiKey := os.Getenv("GOOGLE_API_KEY")
@@ -20,11 +31,7 @@ func TestTranscribeIntegration(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	// Use a small test WAV
-	wavPath := os.Getenv("HOME") + "/.voicecode/history/2026-01-10_203724.wav"
-	if _, err := os.Stat(wavPath); os.IsNotExist(err) {
-		t.Skipf("test WAV not found: %s", wavPath)
-	}
+	wavPath := sampleWAVPath(t)
 
 	text, elapsed, err := tr.Transcribe(ctx, wavPath)
 	if err != nil {
@@ -52,10 +59,7 @@ func TestTranscribeMediumWAV(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	wavPath := os.Getenv("HOME") + "/.voicecode/history/2026-01-09_202239.wav"
-	if _, err := os.Stat(wavPath); os.IsNotExist(err) {
-		t.Skipf("test WAV not found: %s", wavPath)
-	}
+	wavPath := sampleWAVPath(t)
 
 	text, elapsed, err := tr.Transcribe(ctx, wavPath)
 	if err != nil {

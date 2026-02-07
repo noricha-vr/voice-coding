@@ -4,6 +4,7 @@ package recorder
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/gordonklaus/portaudio"
@@ -59,6 +60,7 @@ func (r *darwinRecorder) Start() error {
 			r.mu.Unlock()
 
 			if err := stream.Read(); err != nil {
+				log.Printf("[Recorder] stream read error: %v", err)
 				return
 			}
 			r.mu.Lock()
