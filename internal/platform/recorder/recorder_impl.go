@@ -1,5 +1,3 @@
-//go:build darwin
-
 package recorder
 
 import (
@@ -16,22 +14,22 @@ const (
 	FrameSize  = 1024
 )
 
-type darwinRecorder struct {
+type portaudioRecorder struct {
 	mu        sync.Mutex
 	stream    *portaudio.Stream
 	buffer    []int16
 	recording bool
 }
 
-// NewRecorder creates a new macOS audio recorder using PortAudio.
+// NewRecorder creates a new audio recorder using PortAudio.
 func NewRecorder() (Recorder, error) {
 	if err := portaudio.Initialize(); err != nil {
 		return nil, fmt.Errorf("portaudio init: %w", err)
 	}
-	return &darwinRecorder{}, nil
+	return &portaudioRecorder{}, nil
 }
 
-func (r *darwinRecorder) Start() error {
+func (r *portaudioRecorder) Start() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.recording {
@@ -72,7 +70,7 @@ func (r *darwinRecorder) Start() error {
 	return nil
 }
 
-func (r *darwinRecorder) Stop() ([]int16, error) {
+func (r *portaudioRecorder) Stop() ([]int16, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if !r.recording {
@@ -90,7 +88,7 @@ func (r *darwinRecorder) Stop() ([]int16, error) {
 	return samples, nil
 }
 
-func (r *darwinRecorder) IsRecording() bool {
+func (r *portaudioRecorder) IsRecording() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.recording

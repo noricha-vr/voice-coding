@@ -12,7 +12,11 @@ import (
 
 // DictionaryPath returns the path to the user dictionary file.
 func DictionaryPath() string {
-	return filepath.Join(os.Getenv("HOME"), ".voicecode", "dictionary.txt")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = os.Getenv("HOME")
+	}
+	return filepath.Join(home, ".voicecode", "dictionary.txt")
 }
 
 // ParseDictionary reads the dictionary file and returns conversion XML and hint XML.

@@ -63,16 +63,22 @@ func New(
 
 // Run starts the application with the tray icon.
 func (a *App) Run() {
+	// Set up settings callbacks before Run
+	a.tray.SetSettingsCallbacks(tray.SettingsCallbacks{
+		OnHotkeyChange:     a.onHotkeyChange,
+		OnDurationChange:   a.onDurationChange,
+		OnPushToTalkToggle: a.onPushToTalkToggle,
+	})
+
 	a.tray.Run(func() {
 		// onReady
 		log.Println("[App] Ready")
 		a.tray.SetState(tray.Idle)
 
-		if a.settings.PushToTalk {
-			a.hotkey.Register(a.settings.Hotkey, a.onHotkeyPress, a.onHotkeyRelease)
-		} else {
-			a.hotkey.Register(a.settings.Hotkey, a.onHotkeyPress, nil)
-		}
+		// Sync tray menu with current settings
+		a.tray.UpdateSettings(a.settings.Hotkey, a.settings.MaxRecordingDuration, a.settings.PushToTalk)
+
+		a.registerHotkey()
 		log.Printf("[App] Hotkey registered: %s (push-to-talk: %v)", a.settings.Hotkey, a.settings.PushToTalk)
 	}, func() {
 		// onQuit
@@ -85,6 +91,51 @@ func (a *App) Run() {
 			a.recorder.Stop()
 		}
 	})
+}
+
+func (a *App) registerHotkey() {
+	if a.settings.PushToTalk {
+		a.hotkey.Register(a.settings.Hotkey, a.onHotkeyPress, a.onHotkeyRelease)
+	} else {
+		a.hotkey.Register(a.settings.Hotkey, a.onHotkeyPress, nil)
+	}
+}
+
+func (a *App) onHotkeyChange(key string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.hotkey.Unregister()
+	a.settings.Hotkey = key
+	a.registerHotkey()
+	if err := a.settings.Save(); err != nil {
+		log.Printf("[App] Failed to save settings: %v", err)
+	}
+	a.tray.UpdateSettings(a.settings.Hotkey, a.settings.MaxRecordingDuration, a.settings.PushToTalk)
+	log.Printf("[App] Hotkey changed to: %s", key)
+}
+
+func (a *App) onDurationChange(seconds int) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.settings.MaxRecordingDuration = seconds
+	if err := a.settings.Save(); err != nil {
+		log.Printf("[App] Failed to save settings: %v", err)
+	}
+	a.tray.UpdateSettings(a.settings.Hotkey, a.settings.MaxRecordingDuration, a.settings.PushToTalk)
+	log.Printf("[App] Max recording duration changed to: %ds", seconds)
+}
+
+func (a *App) onPushToTalkToggle(enabled bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.settings.PushToTalk = enabled
+	a.hotkey.Unregister()
+	a.registerHotkey()
+	if err := a.settings.Save(); err != nil {
+		log.Printf("[App] Failed to save settings: %v", err)
+	}
+	a.tray.UpdateSettings(a.settings.Hotkey, a.settings.MaxRecordingDuration, a.settings.PushToTalk)
+	log.Printf("[App] Push-to-talk: %v", enabled)
 }
 
 func (a *App) onHotkeyPress() {

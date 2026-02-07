@@ -22,7 +22,11 @@ type Entry struct {
 var historyDirFunc = defaultHistoryDir
 
 func defaultHistoryDir() string {
-	return filepath.Join(os.Getenv("HOME"), ".voicecode", "history")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = os.Getenv("HOME")
+	}
+	return filepath.Join(home, ".voicecode", "history")
 }
 
 // HistoryDir returns the path to the history directory.
