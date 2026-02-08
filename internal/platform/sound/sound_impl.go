@@ -25,7 +25,7 @@ func initOto() {
 		op := &oto.NewContextOptions{
 			SampleRate:   22050,
 			ChannelCount: 1,
-			Format:       oto.FormatUnsignedInt8,
+			Format:       oto.FormatSignedInt16LE,
 		}
 		var readyCh chan struct{}
 		otoCtx, readyCh, otoInitErr = oto.NewContext(op)
