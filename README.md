@@ -58,7 +58,7 @@ pbpaste
 ./voicecode
 ```
 
-ホットキー（デフォルト: F15）で録音開始/停止。文字起こし結果が自動でペーストされる。F15 キーがないキーボードの場合は `~/.voicecode/settings.json` で `hotkey` を変更する（例: `"f13"`, `"f14"`）。
+ホットキー（デフォルト: F15）で録音開始/停止。文字起こし結果が自動でペーストされる。F15 キーがないキーボードの場合は `~/.voicecoding/settings.json` で `hotkey` を変更する（例: `"f13"`, `"f14"`）。
 
 ### CLI モード（WAV ファイル文字起こし）
 
@@ -68,7 +68,7 @@ pbpaste
 
 ## 設定
 
-設定ファイル: `~/.voicecode/settings.json`
+設定ファイル: `~/.voicecoding/settings.json`
 
 ```json
 {
@@ -88,7 +88,7 @@ pbpaste
 
 ### ユーザー辞書
 
-`~/.voicecode/dictionary.txt` にタブ区切りで変換ルールを定義:
+`~/.voicecoding/dictionary.txt` にタブ区切りで変換ルールを定義:
 
 ```
 Kubernetes	クバネティス,クーバネティス

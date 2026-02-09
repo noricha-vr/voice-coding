@@ -26,7 +26,7 @@ func defaultHistoryDir() string {
 	if err != nil {
 		home = os.Getenv("HOME")
 	}
-	return filepath.Join(home, ".voicecode", "history")
+	return filepath.Join(home, ".voicecoding", "history")
 }
 
 // HistoryDir returns the path to the history directory.

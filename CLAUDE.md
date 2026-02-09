@@ -41,9 +41,9 @@ OS Platform Adapters（darwin/windows/linux）
 
 ### 設定ファイル
 
-- アプリ設定: `~/.voicecode/settings.json`
-- 履歴: `~/.voicecode/history/`
-- API キー: `~/.voicecode/.env`（`GOOGLE_API_KEY`）
+- アプリ設定: `~/.voicecoding/settings.json`
+- 履歴: `~/.voicecoding/history/`
+- API キー: `~/.voicecoding/.env`（`GOOGLE_API_KEY`）
 
 ## ドキュメント構成
 

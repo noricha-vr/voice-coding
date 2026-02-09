@@ -16,7 +16,7 @@ func DictionaryPath() string {
 	if err != nil {
 		home = os.Getenv("HOME")
 	}
-	return filepath.Join(home, ".voicecode", "dictionary.txt")
+	return filepath.Join(home, ".voicecoding", "dictionary.txt")
 }
 
 // ParseDictionary reads the dictionary file and returns conversion XML and hint XML.

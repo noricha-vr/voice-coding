@@ -10,7 +10,7 @@ import (
 func withTempSettingsPath(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	path := filepath.Join(dir, ".voicecode", "settings.json")
+	path := filepath.Join(dir, ".voicecoding", "settings.json")
 	settingsPathFunc = func() string { return path }
 	t.Cleanup(func() { settingsPathFunc = defaultSettingsPath })
 	return path

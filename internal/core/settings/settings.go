@@ -44,10 +44,10 @@ func defaultSettingsPath() string {
 	if err != nil {
 		home = os.Getenv("HOME")
 	}
-	return filepath.Join(home, ".voicecode", "settings.json")
+	return filepath.Join(home, ".voicecoding", "settings.json")
 }
 
-// Load reads settings from ~/.voicecode/settings.json.
+// Load reads settings from ~/.voicecoding/settings.json.
 // If the file does not exist, it creates one with default values.
 func Load() (*Settings, error) {
 	path := settingsPathFunc()
@@ -72,7 +72,7 @@ func Load() (*Settings, error) {
 	return &s, nil
 }
 
-// Save writes the settings to ~/.voicecode/settings.json.
+// Save writes the settings to ~/.voicecoding/settings.json.
 func (s *Settings) Save() error {
 	path := settingsPathFunc()
 

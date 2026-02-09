@@ -142,7 +142,7 @@ func TestHistoryDir(t *testing.T) {
 	if dir == "" {
 		t.Error("HistoryDir() returned empty string")
 	}
-	if !strings.Contains(dir, ".voicecode") {
-		t.Errorf("HistoryDir() = %q, expected to contain .voicecode", dir)
+	if !strings.Contains(dir, ".voicecoding") {
+		t.Errorf("HistoryDir() = %q, expected to contain .voicecoding", dir)
 	}
 }
