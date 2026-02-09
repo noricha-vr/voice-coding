@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gordonklaus/portaudio"
 )
@@ -70,7 +71,7 @@ func (r *portaudioRecorder) Start() error {
 		defer close(r.readDone)
 		for {
 			r.mu.Lock()
-			if !r.recording {
+			if !r.recording || r.stream != stream {
 				r.mu.Unlock()
 				return
 			}
@@ -80,7 +81,14 @@ func (r *portaudioRecorder) Start() error {
 				log.Printf("[Recorder] stream read error: %v", err)
 				return
 			}
+
+			// Stop() can run concurrently with Read(); re-check after returning from Read
+			// to avoid appending after recording has ended (or after a new stream started).
 			r.mu.Lock()
+			if !r.recording || r.stream != stream {
+				r.mu.Unlock()
+				return
+			}
 			r.buffer = append(r.buffer, buf...)
 			r.mu.Unlock()
 		}
@@ -104,8 +112,10 @@ func (r *portaudioRecorder) Stop() ([]int16, error) {
 
 	var streamErr error
 	if stream != nil {
-		if err := stream.Stop(); err != nil {
-			streamErr = fmt.Errorf("stop stream: %w", err)
+		// Abort is best-effort to ensure Read() unblocks quickly.
+		// Stop() can block waiting for pending buffers; for our use-case we want fast shutdown.
+		if err := stream.Abort(); err != nil {
+			streamErr = fmt.Errorf("abort stream: %w", err)
 		}
 		if err := stream.Close(); err != nil {
 			if streamErr != nil {
@@ -116,7 +126,11 @@ func (r *portaudioRecorder) Stop() ([]int16, error) {
 		}
 	}
 	if done != nil {
-		<-done
+		select {
+		case <-done:
+		case <-time.After(500 * time.Millisecond):
+			log.Printf("[Recorder] stop timeout: read goroutine did not exit")
+		}
 	}
 
 	r.mu.Lock()
