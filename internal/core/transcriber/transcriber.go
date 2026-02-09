@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/noricha-vr/voicecode/internal/core/prompt"
+	"github.com/noricha-vr/voicecode/internal/core/trace"
 	"google.golang.org/genai"
 )
 
@@ -86,7 +87,15 @@ func New(ctx context.Context, apiKey string) (*Transcriber, error) {
 
 // Transcribe transcribes a WAV file and returns the text.
 func (t *Transcriber) Transcribe(ctx context.Context, wavPath string) (string, float64, error) {
+	tl := trace.FromContext(ctx)
+	stepper := (*trace.Timeline)(nil)
+	if tl != nil {
+		stepper = tl
+	}
+
+	readDone := stepper.Step("os.ReadFile(audio)")
 	audioData, err := os.ReadFile(wavPath)
+	readDone(err)
 	if err != nil {
 		return "", 0, fmt.Errorf("read audio file: %w", err)
 	}
@@ -96,10 +105,14 @@ func (t *Transcriber) Transcribe(ctx context.Context, wavPath string) (string, f
 
 	start := time.Now()
 
+	genDone := stepper.Step("gemini.generateContentWithRetry(primary)")
 	response, err := t.generateContentWithRetry(ctx, audioData)
+	genDone(err)
 	if err != nil {
 		if IsModelNotFound(err) || IsTransient(err) {
+			resolveDone := stepper.Step("gemini.ResolveModel(fallback)")
 			fallback := ResolveModel(ctx, t.client, map[string]bool{t.modelName: true})
+			resolveDone(nil)
 			if fallback != "" {
 				reason := "モデルが見つからないため"
 				if IsTransient(err) {
@@ -107,8 +120,13 @@ func (t *Transcriber) Transcribe(ctx context.Context, wavPath string) (string, f
 				}
 				log.Printf("[Gemini] %sモデルを切替します: %s -> %s", reason, t.modelName, fallback)
 				t.modelName = fallback
+				cacheDone := stepper.Step("gemini.ensurePromptCache(fallback)")
 				t.ensurePromptCache(ctx)
+				cacheDone(nil)
+
+				genDone2 := stepper.Step("gemini.generateContentWithRetry(fallback)")
 				response, err = t.generateContentWithRetry(ctx, audioData)
+				genDone2(err)
 				if err != nil {
 					elapsed := time.Since(start).Seconds()
 					log.Printf("[Gemini %.2fs] API呼び出しに失敗しました(model=%s): %v", elapsed, t.modelName, err)
@@ -127,9 +145,11 @@ func (t *Transcriber) Transcribe(ctx context.Context, wavPath string) (string, f
 	}
 
 	elapsed := time.Since(start).Seconds()
+	cleanDone := stepper.Step("transcriber.cleanText")
 	rawText := response.Text()
 	result := xmlTagPattern.ReplaceAllString(rawText, "")
 	result = strings.TrimSpace(result)
+	cleanDone(nil)
 
 	log.Printf("[Gemini %.2fs] %s (model=%s)", elapsed, result, t.modelName)
 	return result, elapsed, nil

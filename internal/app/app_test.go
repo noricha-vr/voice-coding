@@ -2,6 +2,7 @@ package app
 
 import (
 	"testing"
+	"time"
 
 	"github.com/noricha-vr/voicecode/internal/core/settings"
 	"github.com/noricha-vr/voicecode/internal/platform/sound"
@@ -57,13 +58,13 @@ func (m *mockHotkey) Register(key string, onPress func(), onRelease func()) erro
 func (m *mockHotkey) Unregister() error { return nil }
 
 type mockTray struct {
-	state      tray.State
-	ready      func()
-	quit       func()
-	cb         tray.SettingsCallbacks
-	curHotkey  string
-	curDur     int
-	curPTT     bool
+	state     tray.State
+	ready     func()
+	quit      func()
+	cb        tray.SettingsCallbacks
+	curHotkey string
+	curDur    int
+	curPTT    bool
 }
 
 func (m *mockTray) Run(onReady func(), onQuit func()) {
@@ -73,7 +74,7 @@ func (m *mockTray) Run(onReady func(), onQuit func()) {
 		onReady()
 	}
 }
-func (m *mockTray) SetState(state tray.State) error { m.state = state; return nil }
+func (m *mockTray) SetState(state tray.State) error                { m.state = state; return nil }
 func (m *mockTray) SetSettingsCallbacks(cb tray.SettingsCallbacks) { m.cb = cb }
 func (m *mockTray) UpdateSettings(hotkey string, maxDuration int, pushToTalk bool) {
 	m.curHotkey = hotkey
@@ -194,7 +195,7 @@ func TestStartStopRecording(t *testing.T) {
 
 	// Start recording
 	a.mu.Lock()
-	a.startRecording()
+	a.startRecording(time.Now())
 	a.mu.Unlock()
 
 	if !a.isRecording {
@@ -209,7 +210,7 @@ func TestStartStopRecording(t *testing.T) {
 
 	// Stop recording (will fail on transcribe since we have no transcriber, but state should change)
 	a.mu.Lock()
-	a.stopAndProcess()
+	a.stopAndProcess(time.Now())
 	a.mu.Unlock()
 
 	if a.isRecording {
