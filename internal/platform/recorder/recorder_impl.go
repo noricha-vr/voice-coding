@@ -2,9 +2,7 @@ package recorder
 
 import (
 	"fmt"
-	"log"
 	"sync"
-	"time"
 
 	"github.com/gordonklaus/portaudio"
 )
@@ -19,9 +17,7 @@ type portaudioRecorder struct {
 	mu        sync.Mutex
 	stream    *portaudio.Stream
 	buffer    []int16
-	frameBuf  []int16
 	recording bool
-	readDone  chan struct{}
 }
 
 // NewRecorder creates a new audio recorder using PortAudio.
@@ -34,12 +30,12 @@ func NewRecorder() (Recorder, error) {
 
 func (r *portaudioRecorder) Start() error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	if r.recording {
+		r.mu.Unlock()
 		return fmt.Errorf("already recording")
 	}
 
-	// Reuse buffer capacity across recordings to avoid hot path allocations.
+	// Reuse buffer capacity across recordings to avoid allocations in the PortAudio callback.
 	// Prealloc 10s and let it grow if the user records longer.
 	const preallocSeconds = 10
 	preallocCap := SampleRate * preallocSeconds
@@ -48,51 +44,29 @@ func (r *portaudioRecorder) Start() error {
 	} else {
 		r.buffer = r.buffer[:0]
 	}
-	if cap(r.frameBuf) < FrameSize {
-		r.frameBuf = make([]int16, FrameSize)
-	} else {
-		r.frameBuf = r.frameBuf[:FrameSize]
-	}
+	r.recording = true
+	r.mu.Unlock()
 
-	buf := r.frameBuf
-	stream, err := portaudio.OpenDefaultStream(Channels, 0, float64(SampleRate), FrameSize, buf)
+	// Use a callback stream to avoid the blocking Read() hang observed on Stop().
+	// The callback appends input samples while recording=true.
+	stream, err := portaudio.OpenDefaultStream(Channels, 0, float64(SampleRate), FrameSize, r.processAudio)
 	if err != nil {
+		r.mu.Lock()
+		r.recording = false
+		r.mu.Unlock()
 		return fmt.Errorf("open stream: %w", err)
 	}
 	if err := stream.Start(); err != nil {
 		_ = stream.Close()
+		r.mu.Lock()
+		r.recording = false
+		r.mu.Unlock()
 		return fmt.Errorf("start stream: %w", err)
 	}
+
+	r.mu.Lock()
 	r.stream = stream
-	r.recording = true
-	r.readDone = make(chan struct{})
-
-	go func() {
-		defer close(r.readDone)
-		for {
-			r.mu.Lock()
-			if !r.recording || r.stream != stream {
-				r.mu.Unlock()
-				return
-			}
-			r.mu.Unlock()
-
-			if err := stream.Read(); err != nil {
-				log.Printf("[Recorder] stream read error: %v", err)
-				return
-			}
-
-			// Stop() can run concurrently with Read(); re-check after returning from Read
-			// to avoid appending after recording has ended (or after a new stream started).
-			r.mu.Lock()
-			if !r.recording || r.stream != stream {
-				r.mu.Unlock()
-				return
-			}
-			r.buffer = append(r.buffer, buf...)
-			r.mu.Unlock()
-		}
-	}()
+	r.mu.Unlock()
 
 	return nil
 }
@@ -106,14 +80,11 @@ func (r *portaudioRecorder) Stop() ([]int16, error) {
 	r.recording = false
 	stream := r.stream
 	r.stream = nil
-	done := r.readDone
-	r.readDone = nil
 	r.mu.Unlock()
 
 	var streamErr error
 	if stream != nil {
-		// Abort is best-effort to ensure Read() unblocks quickly.
-		// Stop() can block waiting for pending buffers; for our use-case we want fast shutdown.
+		// Abort is best-effort and should be quick for callback streams.
 		if err := stream.Abort(); err != nil {
 			streamErr = fmt.Errorf("abort stream: %w", err)
 		}
@@ -123,13 +94,6 @@ func (r *portaudioRecorder) Stop() ([]int16, error) {
 			} else {
 				streamErr = fmt.Errorf("close stream: %w", err)
 			}
-		}
-	}
-	if done != nil {
-		select {
-		case <-done:
-		case <-time.After(500 * time.Millisecond):
-			log.Printf("[Recorder] stop timeout: read goroutine did not exit")
 		}
 	}
 
@@ -147,4 +111,13 @@ func (r *portaudioRecorder) IsRecording() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.recording
+}
+
+func (r *portaudioRecorder) processAudio(in []int16) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.recording {
+		return
+	}
+	r.buffer = append(r.buffer, in...)
 }
