@@ -8,6 +8,7 @@ const (
 	Stop
 	Success
 	Error
+	ProcessingTick
 )
 
 // Player plays system sounds for audio feedback.

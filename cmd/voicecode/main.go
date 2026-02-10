@@ -99,6 +99,9 @@ func runGUI() {
 	}
 
 	snd := sound.NewPlayer()
+	if err := sound.WarmUp(); err != nil {
+		log.Printf("[Init] Sound warmup failed: %v", err)
+	}
 	ov := overlay.NewOverlay()
 	hk := hotkey.NewManager()
 	tm := tray.NewManager()

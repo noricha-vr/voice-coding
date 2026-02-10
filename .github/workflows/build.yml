@@ -28,7 +28,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y portaudio19-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libxxf86vm-dev libasound2-dev xdotool
+          sudo apt-get install -y portaudio19-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libxxf86vm-dev libasound2-dev xdotool xvfb
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
@@ -41,5 +41,10 @@ jobs:
       - name: Build
         run: go build ./...
 
+      - name: Test (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a go test ./...
+
       - name: Test
+        if: runner.os != 'Linux'
         run: go test ./...

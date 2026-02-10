@@ -22,3 +22,6 @@ var SoundSuccess []byte
 
 //go:embed sounds/error.wav
 var SoundError []byte
+
+//go:embed sounds/processing_tick.wav
+var SoundProcessingTick []byte

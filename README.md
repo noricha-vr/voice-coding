@@ -104,6 +104,8 @@ Docker	ドッカー
 | `VOICECODE_THINKING_LEVEL` | No | Thinking レベル: minimal/low/medium/high |
 | `VOICECODE_ENABLE_PROMPT_CACHE` | No | プロンプトキャッシュ（デフォルト: true） |
 | `VOICECODE_PROMPT_CACHE_TTL` | No | キャッシュ TTL（デフォルト: 3600s） |
+| `VOICECODE_ENABLE_TIMING_LOGS` | No | 処理時間の詳細ログを出力（デフォルト: true） |
+| `VOICECODE_TRIM_SILENCE` | No | 録音前後の無音を自動トリム（デフォルト: true） |
 
 ## アーキテクチャ
 
