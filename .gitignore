@@ -13,3 +13,12 @@
 .env
 .env.local
 .env.*.local
+
+# Claude Code
+.claude/
+
+# Artifacts
+artifacts/
+
+# Tools
+tools/
